@@ -3,18 +3,25 @@ import sequelize from "../config/database.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { v4 as uuidv4 } from "uuid";
-import Article from "./article.model.js";
+
+import Token from "./token.model.js";
+import Follower from "./follower.model.js";
 
 class User extends Model {
   async generateAuthToken() {
     const user = this;
-    const token = jwt.sign({ _id: user.id.toString() }, process.env.JWT_KEY, {
+    const myUUID = uuidv4();
+    const token = jwt.sign({ _id: user.id.toString(), _uuid: myUUID }, process.env.JWT_KEY, {
       expiresIn: "7D",
     });
-    const myUUID = uuidv4();
 
-    user.tokens = user.tokens.concat({ id: myUUID, token: token });
-    await user.save();
+    // user.tokens = user.tokens.concat({ id: myUUID, token: token });
+
+    await Token.create({
+      uuid: myUUID,
+      user_id: user.id,
+      token
+    });
 
     return token;
   }
@@ -66,12 +73,7 @@ User.init(
     password: {
       type: DataTypes.STRING,
       allowNull: false,
-    },
-    tokens: {
-      type: DataTypes.JSON,
-      allowNull: true,
-      defaultValue: [],
-    },
+    }
   },
   {
     sequelize,

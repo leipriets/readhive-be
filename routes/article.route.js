@@ -6,13 +6,15 @@ import {
   updateArticle,
   deleteArticle,
   addToFavorites,
-  removeToFavorites
+  removeToFavorites,
+  getFeed
 } from "../controllers/article.controller.js";
 import { auth } from "../middleware/auth.js";
 
 const router = Router();
 
 router.get("/articles", getArticles);
+router.get("/articles/feed", auth, getFeed);
 router.get("/articles/:slug", auth, getArticleBySlug);
 router.put("/articles/:slug", auth, updateArticle);
 router.delete("/articles/:slug", auth, deleteArticle);

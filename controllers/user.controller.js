@@ -1,13 +1,14 @@
-import User from "../models/user.model.js";
+import { Token, User } from "../models/index.js";
 import bcrypt from "bcrypt";
 
 export const getCurrentUser = async (req, res) => {
 
   try {
     
-    const { username, image, bio, token } = req.user;
+    const { id, username, image, bio, token } = req.user;
   
     const response = {
+      id,
       username,
       image,
       bio,
@@ -74,6 +75,33 @@ export const signIn = async (req, res) => {
 
     res.send({ user: response });
   } catch (error) {
-    res.status(400).send({ error: error.message });
+    res.status(400).send({ error: error?.message });
   }
 };
+
+
+export const userLogout = async(req, res) => {
+
+  try {
+
+    const stateUserId = req.user.id;
+    const stateTokenId = req.user.token_uuid;
+
+    const userToken = await Token.findOne({
+      where: {
+        user_id: stateUserId,
+        uuid: stateTokenId
+      }
+    })
+
+    await userToken.destroy();
+
+    res.send({
+      message: 'Successfully logout.'
+    })
+    
+  } catch (error) {
+    res.status(400).send({ error: error?.message });
+  }
+
+}
