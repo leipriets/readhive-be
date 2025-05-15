@@ -12,14 +12,14 @@ const Follower = sequelize.define('Follower', {
     user_id: {
         type: DataTypes.BIGINT(20),
         references: {
-            model: User,
+            model: 'Users',
             key: 'id'
         }
     },
-    follower_id: {
+    follow_id: {
         type: DataTypes.BIGINT(20),
         references: {
-            model: User,
+            model: 'Users',
             key: 'id'
         }
     }

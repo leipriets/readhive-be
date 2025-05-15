@@ -5,19 +5,18 @@ import { fileURLToPath } from "url";
 import cors from 'cors';
 
 import sequelize from "./config/database.js";
-import User from './models/user.model.js';
-import Article from "./models/article.model.js";
-import ArticeTag from "./models/articleTag.model.js";
-import Tag from "./models/tag.model.js";
-import Favorite from "./models/favorite.model.js";
-import Follower from "./models/follower.model.js";
-import Comment from "./models/comment.model.js";
 
 // routes
 import userRoutes from "./routes/user.route.js";
 import articleRoutes from "./routes/article.route.js";
 import profileRoutes from "./routes/profile.route.js";
 import tagRoutes from "./routes/tags.route.js";
+
+// seeds
+import { seedUsers } from "./seeds/user.seed.js";
+import { seedArticles } from "./seeds/article.seed.js";
+
+import Comment from "./models/comment.model.js";
 
 // Get the current file's directory
 const __filename = fileURLToPath(import.meta.url);
@@ -51,6 +50,12 @@ app.listen(port, () => {
 // try {
 //   await sequelize.sync({ force: true });
 //   console.log("Database synced");
+
+//   const users = await seedUsers();
+//   await seedArticles(users);
+//   console.log("✅Seeding completed successfully!");
+  
+  
 // } catch (err) {
 //   console.error("Error syncing DB:", err);
 // }

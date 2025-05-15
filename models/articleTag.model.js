@@ -17,14 +17,14 @@ ArticleTag.init(
     article_id: {
       type: DataTypes.BIGINT(20),
       references: {
-        model: "article",
+        model: "articles",
         key: "id",
       },
     },
     tag_id: {
       type: DataTypes.BIGINT(20),
       references: {
-        model: "tag",
+        model: "tags",
         key: "id",
       },
     },

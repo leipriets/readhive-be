@@ -1,6 +1,6 @@
 import jwt from "jsonwebtoken";
-import User from "../models/user.model.js";
-import sequelize from "../config/database.js";
+import { Token, User } from "../models/index.js";
+import _ from "lodash";
 
 export const auth = async (req, res, next) => {
   const token = req.header("Authorization").replace("Bearer ", "");
@@ -8,42 +8,43 @@ export const auth = async (req, res, next) => {
 
   try {
     decodedToken = jwt.verify(token, process.env.JWT_KEY);
+
+    const user = await User.findOne({
+      where: { id: decodedToken._id },
+      include: [
+        {
+          model: Token,
+          as: "token",
+          where: { token },
+        },
+      ],
+    });
+
+    const tokenValue = user?.token?.[0]?.token;
+
+    if (_.isEmpty(user)) {
+      res.status(401).send({
+        error: err,
+        message: "Authentication failed.",
+      });
+    } else {
+      const userData = {
+        id: user.id,
+        username: user.username,
+        image: user.image,
+        bio: user.bio,
+        token: tokenValue,
+        token_uuid: decodedToken._uuid
+      };
+
+      req.user = userData;
+
+      next();
+    }
   } catch (err) {
     res.status(401).send({
       error: err,
       message: "Authentication failed.",
     });
   }
-
-  const user = await sequelize.query(
-    `SELECT *
-  FROM users
-  WHERE id = :id
-    AND JSON_SEARCH(
-      JSON_EXTRACT(tokens, '$[*].token'),
-      'one',
-      :token
-    ) IS NOT NULL
-  LIMIT 1`,
-    {
-      replacements: { id: decodedToken._id, token },
-      type: sequelize.QueryTypes.SELECT,
-    }
-  );
-
-  if (!user) {
-    throw new Error();
-  }
-
-  const matchedToken = user[0].tokens.find(t => t.token === token);
-
-  const userData = {
-    username: user[0].username,
-    image: user[0].image,
-    bio: user[0].bio,
-    token: matchedToken
-  }
-
-  req.user = userData;
-  next();
 };

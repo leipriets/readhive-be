@@ -12,14 +12,14 @@ const Favorite = sequelize.define('Favorite', {
     user_id: {
         type: DataTypes.BIGINT(20),
         references: {
-            model: "user",
+            model: "users",
             key: 'id'
         }
     },
     article_id: {
         type: DataTypes.BIGINT(20),
         references: {
-            model: "article",
+            model: "articles",
             key: 'id'
         }
     }

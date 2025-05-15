@@ -1,5 +1,46 @@
-import User from '../models/user.model.js';
-import Follower from '../models/follower.model.js';
+import { User, Follower } from '../models/index.js';
+import _ from 'lodash';
+
+export const getProfile = async (req, res) => {
+
+    try {
+
+        const userParam = req.params.username;
+        const stateUserId = req.user.id;
+
+        const profile = await User.findOne({
+            where: { username: userParam },
+        }); 
+
+        const { username, image, bio, id } = profile;
+
+        const follower = await Follower.findOne({
+            where: {
+                user_id: stateUserId,
+                follow_id: id   
+            }
+        });
+
+        console.log(follower);
+
+        const isFollowed =  follower ? true : false;
+          
+        res.send({
+            profile: {
+                username,
+                image,
+                bio,
+                following: isFollowed
+            }
+        });
+        
+    } catch (error) {
+    
+        console.log(error);
+        res.status(400).send(error);
+        
+    }
+}
 
 export const followUser = async (req, res) => {
 
@@ -16,7 +57,7 @@ export const followUser = async (req, res) => {
             
             await Follower.create({
                 user_id: userId,
-                follower_id: follower.id
+                follow_id: follower.id,
             });
 
             const { username, bio, image } = stateUser;
@@ -30,14 +71,15 @@ export const followUser = async (req, res) => {
                 }
             });
 
+        } else {
+            res.status(422).send({error: "Invalid request!"});
         }
 
-        res.status(422).send({error: "Invalid request!"});
 
         
     } catch (error) {
-
-        res.status(400).send(error);
+        console.log(error);
+        res.status(400).send('Something went wrong!');
         
     }
 }
@@ -56,7 +98,7 @@ export const unfollowUser = async(req, res) => {
             await Follower.destroy({
                 where: {
                     user_id: profileId,
-                    follower_id: follower.id
+                    follow_id: follower.id
                 }
             });
 
