@@ -1,17 +1,36 @@
-import { Article, User, Favorite, Tag, ArticleTag } from "../models/index.js";
+import {
+  Article,
+  User,
+  Favorite,
+  Tag,
+  ArticleTag,
+  Comment,
+  LikeComments,
+} from "../models/index.js";
 import slug from "slug";
 import _ from "lodash";
 import { nanoid } from "nanoid";
+import { Op } from "sequelize";
 
 export const getFeed = async (req, res) => {
   try {
+    const { offset, limit, author } = req.query;
+    const { id } = req.user;
+
+    let paramsArticle = {
+      offset,
+      limit,
+      author,
+      userId: id,
+    };
+
     const isFeed = true;
-    const result = await Article.fetchArticles(req, isFeed);
+    const result = await Article.fetchArticles(paramsArticle, isFeed);
     const articles = await Article.transformResponse(result);
 
     res.status(200).send({
       articles: articles,
-      articleCount: articles.count,
+      articlesCount: result.count,
     });
   } catch (error) {
     console.log(error);
@@ -21,13 +40,33 @@ export const getFeed = async (req, res) => {
 
 export const getArticles = async (req, res) => {
   try {
-    const result = await Article.fetchArticles(req);
+    const { offset, limit, author, tag, favorited } = req.query;
+    let articles, result;
 
-    const articles = await Article.transformResponse(result);
+    let paramsArticle = {
+      offset,
+      limit,
+      author,
+      favorited,
+      tag,
+    };
+
+    if (favorited && favorited.length > 0) {
+      const fetchFavoritedArticleIds = await Favorite.favoriteArticles(
+        paramsArticle
+      );
+      console.log(fetchFavoritedArticleIds);
+      paramsArticle.articleIds = fetchFavoritedArticleIds;
+      result = await Article.fetchArticles(paramsArticle);
+      articles = await Article.transformResponse(result);
+    } else {
+      result = await Article.fetchArticles(paramsArticle);
+      articles = await Article.transformResponse(result);
+    }
 
     res.status(200).send({
       articles: articles,
-      articleCount: articles.count,
+      articlesCount: result.count,
     });
   } catch (error) {
     console.log(error);
@@ -38,57 +77,80 @@ export const getArticles = async (req, res) => {
 export const createArticle = async (req, res) => {
   const { title, body, description, tagList } = req.body.article;
   const authorId = req.user.id;
-  let article;
   let articleId;
   let generateSlug = slug(title, { lower: true });
 
   try {
-    article = await Article.create({
+    const article = await Article.create({
       author: authorId,
       slug: generateSlug,
       title,
       body,
       description,
     });
+
+    tagList.forEach(async (tag) => {
+      let tags = [];
+
+      let tagId;
+      const isTagExist = await Tag.findOne({
+        where: {
+          name: tag,
+        },
+      });
+
+      if (isTagExist) {
+        tagId = isTagExist.id;
+      } else {
+        const insertTags = await Tag.create({
+          name: tag,
+        });
+
+        tagId = insertTags.id;
+      }
+
+      const saveNewArticleTag = await ArticleTag.create(
+        {
+          article_id: article.id,
+          tag_id: tagId,
+        },
+        {
+          include: [{ model: Tag, as: "tags" }],
+        }
+      );
+
+      return saveNewArticleTag;
+    });
+
+    res.status(201).send({
+      article: article.toJSON(),
+      tagList,
+    });
   } catch (err) {
+    console.log(err);
     const code = err?.original?.code || undefined;
 
     if (code !== undefined && code == "ER_DUP_ENTRY") {
       const shortId = nanoid(6);
       const newSlug = generateSlug + shortId;
 
-      article = await Article.create({
+      const article = await Article.create({
         author: authorId,
         slug: newSlug,
         title,
         body,
         description,
       });
-    }
-  }
 
-  articleId = article.id;
+      articleId = article.id;
 
-  let tags = [];
-  if (tagList && tagList.length > 0) {
-    for (let t = 0; t < tagList.length; t++) {
-      const tag = tagList[t];
-      tags.push(tag);
-
-      const saveTag = await Tag.verifySaveTag(tag);
-      const tagId = saveTag.id;
-
-      await ArticleTag.create({
-        article_id: articleId,
-        tag_id: tagId,
+      const tags = await saveTag(tagList, articleId);
+      res.status(201).send({
+        article: article.toJSON(),
+        tagList: tags,
       });
     }
   }
-
-  res.status(201).send({
-    article: article.toJSON(),
-    tagList: tags,
-  });
 };
 
 export const updateArticle = async (req, res) => {
@@ -96,11 +158,11 @@ export const updateArticle = async (req, res) => {
     const userId = req.user.id;
     const oldSlug = req.params.slug;
     const { title, body, description, tagList } = req.body.article;
+    let existingTagList = [];
 
     const generateSlug = slug(title, { lower: true });
 
     const fetchArticle = await Article.findArticleBySlug(oldSlug);
-    console.log(fetchArticle);
 
     if (userId !== fetchArticle.author) {
       res
@@ -109,63 +171,74 @@ export const updateArticle = async (req, res) => {
     } else {
       fetchArticle.update({ slug: generateSlug, title, body, description });
 
-      const articleTag = await ArticleTag;
-
       if (tagList && tagList.length === 0) {
-        await articleTag
-          .findOne({
-            where: {
-              article_id: fetchArticle.id,
-            },
-          })
-          .destroy();
+        await ArticleTag.findOne({
+          where: {
+            article_id: fetchArticle.id,
+          },
+        }).destroy();
       }
 
       if (tagList && tagList.length > 0) {
-        tagList.forEach(async (tag) => {
-          let tagId;
-          const isTagExist = await Tag.findOne({
-            where: {
-              name: tag,
+        const findTagIds = await Tag.findAll({
+          where: {
+            name: {
+              [Op.in]: tagList,
             },
-          });
+          },
+        });
 
-          if (isTagExist) {
-            tagId = isTagExist.id;
-            console.log("is tag exist ->", isTagExist);
-          } else {
+        let compiledTagList = [];
+
+        findTagIds.forEach((tag) => {
+          existingTagList.push(tag.name);
+          compiledTagList.push(tag.id);
+        });
+
+        const getNewTagList = _.difference(tagList, existingTagList);
+
+        // save new tag list
+        await Promise.all(
+          getNewTagList.map(async (tag) => {
             const insertTags = await Tag.create({
               name: tag,
             });
 
-            tagId = insertTags.id;
-            console.log("is tag not exist", tagId);
-          }
+            compiledTagList.push(insertTags.dataValues.id);
+          })
+        );
 
-          const fetchTags = await articleTag.findOne({
-            include: [
-              {
-                model: Tag,
-                as: "tags",
-              },
-            ],
-            where: {
-              article_id: fetchArticle.id,
-              tag_id: tagId,
-            },
-          });
+        // delete previous list of article tags
+        await ArticleTag.destroy({
+          where: {
+            article_id: fetchArticle.id,
+          },
+        });
 
-          if (!fetchTags) {
+
+        // save new compiled article tags
+        await Promise.all(
+          compiledTagList.map(async (tag) => {
             await ArticleTag.create({
               article_id: fetchArticle.id,
-              tag_id: tagId,
+              tag_id: tag,
             });
-          }
-        });
+          })
+        );
+
+        const rawArticle = fetchArticle.get({ plain: true });
+        const responseTagList = {
+          tagList,
+        };
+
+        const article = {
+          ...rawArticle,
+          ...responseTagList,
+        };
+
+        res.status(200).send({ article });
       }
     }
-
-    res.status(200).send(fetchArticle);
   } catch (error) {
     console.log(error);
     res.status(400).send(error);
@@ -173,6 +246,10 @@ export const updateArticle = async (req, res) => {
 };
 
 export const getArticleBySlug = async (req, res) => {
+  const userId = req?.user?.id;
+
+  console.log("userId", userId);
+
   try {
     const paramSlug = req.params.slug;
 
@@ -213,6 +290,7 @@ export const getArticleBySlug = async (req, res) => {
       favorites_count,
       user,
       articletags,
+      comments,
       createdAt,
       updatedAt,
     } = article;
@@ -228,6 +306,7 @@ export const getArticleBySlug = async (req, res) => {
       favoritesCount: favorites_count,
       author: user,
       tagList,
+      comments,
       createdAt,
       updatedAt,
     };
@@ -327,4 +406,24 @@ export const removeToFavorites = async (req, res) => {
   } catch (error) {
     res.status(400).send(error);
   }
+};
+
+const saveTag = async (tagList, articleId) => {
+  let tags = [];
+  if (tagList && tagList.length > 0) {
+    for (let t = 0; t < tagList.length; t++) {
+      const tag = tagList[t];
+      tags.push(tag);
+
+      const saveTag = await Tag.verifySaveTag(tag);
+      const tagId = saveTag.id;
+
+      await ArticleTag.create({
+        article_id: articleId,
+        tag_id: tagId,
+      });
+    }
+  }
+
+  return tags;
 };

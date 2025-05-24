@@ -1,10 +1,11 @@
-import { DataTypes } from 'sequelize';
+import { DataTypes, Model } from 'sequelize';
 import sequelize from '../config/database.js';
 import Article from './article.model.js';
 import User from './user.model.js';
 
+class Comment extends Model {}
 
-const Comment = sequelize.define('Comment', {
+Comment.init({
     id: {
         type: DataTypes.BIGINT(20),
         autoIncrement: true,
@@ -14,7 +15,7 @@ const Comment = sequelize.define('Comment', {
         type: DataTypes.TEXT('long'),
         allowNull: false
     },
-    author: {
+    user_id: {
         type: DataTypes.BIGINT(20),
         references: {
             model: User,
@@ -27,7 +28,20 @@ const Comment = sequelize.define('Comment', {
             model: Article,
             key: 'id'
         }
+    },
+    like_counts: {
+        type: DataTypes.BIGINT(20),
+        allowNull: true
+    },
+    dislike_counts: {
+        type: DataTypes.BIGINT(20),
+        allowNull: true  
     }
+  },  {
+    sequelize,
+    modelName: "Comment",
+    tableName: "comments",
   });
+
   
   export default Comment;
