@@ -1,7 +1,13 @@
 import { DataTypes, Model } from "sequelize";
 import sequelize from "../config/database.js";
+import ArticleTag from "./articleTag.model.js";
 
 class Tag extends Model {
+
+  static async saveTag(tagList, articleId) {
+    
+
+  }
 
   static async verifySaveTag(tag) {
 

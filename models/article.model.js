@@ -25,33 +25,34 @@ class Article extends Model {
     });
   }
 
-  static async fetchArticles(req, isFeed = false) {
-    const page = +req.query.offset; // or parseInt(req.query.page)
-    const pageSize = +req.query.limit; // or parseInt(req.query.pageSize)
-    const author = req.query.author;
+  static async fetchArticles(params, isFeed = false) {
+
+    const page = +params.offset; // or parseInt(params.query.page)
+    const pageSize = +params.limit; // or parseInt(params.query.pageSize)
+    const author = params.author;
     // const offset = (page - 1) * pageSize;
     const offset = page;
     const limit = pageSize;
-    const userId = req?.user?.id || null;
+    const userId = params.userId || null;
 
-    let filters = {};
-    let followerFilter = {};
+    let authorFilter = {};
+    let filter = {};
+    let filterTag = {};
     let ids = [];
 
     if (author) {
-      filters.username = author;
+      authorFilter.username = author;
     }
 
     if (isFeed) {
-
       ids.push(userId);
+      console.log(userId);
 
       const followedIds = await Follower.findAll({
         where: {
           user_id: userId,
         },
       });
-      
 
       let getFollowedIds = _.map(
         followedIds,
@@ -59,25 +60,34 @@ class Article extends Model {
       );
 
       if (getFollowedIds && getFollowedIds.length > 0) {
-
         ids.push(getFollowedIds);
       }
 
-      console.log(ids);
-
-
-      followerFilter = {
+      filter = {
         author: {
           [Op.in]: ids,
         },
       };
-      
     }
+
+    if (params.articleIds && params.articleIds.length > 0) {
+      filter = {
+        id: {
+          [Op.in]: params.articleIds,
+        },
+      };
+    }
+
+    if (params.tag && params.tag.length > 0) {
+      filterTag.name = params.tag;
+    }
+
 
     const result = await Article.findAndCountAll({
       limit,
       offset,
       order: [["createdAt", "DESC"]], // optional, for ordering
+      distinct: true,
       attributes: [
         "id",
         "slug",
@@ -88,13 +98,14 @@ class Article extends Model {
         "createdAt",
         "updatedAt",
       ],
-      where: followerFilter,
+      where: filter,
       include: [
         {
           model: User,
           as: "user",
           attributes: ["id", "username", "image", "bio"],
-          where: filters,
+          where: Object.keys(authorFilter).length ? authorFilter : undefined,
+          required: Object.keys(authorFilter).length > 0
         },
         {
           model: ArticleTag,
@@ -103,6 +114,8 @@ class Article extends Model {
             {
               model: Tag,
               as: "tags",
+              where: Object.keys(filterTag).length ? filterTag : undefined,
+              required: Object.keys(filterTag).length > 0
             },
           ],
         },
@@ -116,22 +129,26 @@ class Article extends Model {
     return result;
   }
 
-  static async transformResponse(articleOjb) {
-    const transformedRows = articleOjb.rows.map((article) => {
+  static async transformResponse(articleObj) {
+
+    const transformedRows = articleObj.rows.map((article) => {
       const articleJson = article.toJSON();
       articleJson.author = articleJson.user;
       delete articleJson.user;
 
-      const tagNames = _.compact(_.map(articleJson?.articletags, (tag) =>
-         _.get(tag, "tags.name")
-      ));
+      const tagNames = _.compact(
+        _.map(articleJson?.articletags, (tag) => _.get(tag, "tags.name"))
+      );
       articleJson.tagList = tagNames;
       delete articleJson.articletags;
 
       articleJson.favorited = _.isEmpty(articleJson.favorites) ? false : true;
+      articleJson.articleCount = article.articleCount;
 
       return articleJson;
     });
+
+  
 
     return transformedRows;
   }
