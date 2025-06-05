@@ -31,6 +31,7 @@ export const auth = async (req, res, next) => {
       const userData = {
         id: user.id,
         username: user.username,
+        email: user.email,
         image: user.image,
         bio: user.bio,
         token: tokenValue,

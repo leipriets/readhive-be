@@ -2,32 +2,28 @@ import { Token, User } from "../models/index.js";
 import bcrypt from "bcrypt";
 
 export const getCurrentUser = async (req, res) => {
-
   try {
-    
-    const { id, username, image, bio, token } = req.user;
-  
+    const { id, username, email, image, bio, token } = req.user;
+
     const response = {
       id,
       username,
+      email,
       image,
       bio,
-      token: token.token
+      token: token.token,
     };
 
-    res.send({ user: response});
-
-
+    res.send({ user: response });
   } catch (e) {
     console.log(e);
     res.status(400).send(e);
   }
-
 };
 
 export const createUser = async (req, res) => {
   try {
-    const { email, username, password } = req.body;
+    const { email, username, password } = req.body.user;
 
     const user = await User.create({
       username,
@@ -60,7 +56,9 @@ export const signIn = async (req, res) => {
       throw new Error("Invalid User credentials!");
     }
 
-    const { id, name, image, bio, username, createdAt } = user.get({ plain: true });
+    const { id, name, image, bio, username, createdAt } = user.get({
+      plain: true,
+    });
     const token = await user.generateAuthToken();
 
     const response = {
@@ -70,7 +68,7 @@ export const signIn = async (req, res) => {
       bio,
       token,
       username,
-      createdAt
+      createdAt,
     };
 
     res.send({ user: response });
@@ -79,29 +77,70 @@ export const signIn = async (req, res) => {
   }
 };
 
-
-export const userLogout = async(req, res) => {
-
+export const userLogout = async (req, res) => {
   try {
-
     const stateUserId = req.user.id;
     const stateTokenId = req.user.token_uuid;
 
     const userToken = await Token.findOne({
       where: {
         user_id: stateUserId,
-        uuid: stateTokenId
-      }
-    })
+        uuid: stateTokenId,
+      },
+    });
 
     await userToken.destroy();
 
     res.send({
-      message: 'Successfully logout.'
-    })
-    
+      message: "Successfully logout.",
+    });
   } catch (error) {
     res.status(400).send({ error: error?.message });
   }
+};
 
-}
+export const updateUserProfile = async (req, res) => {
+  console.log("File received:", req.file); // Check if file is attached
+
+  const url = req.protocol + '://' + req.get('host');
+
+  const { id } = req.user;
+  const { username, bio, email } = req.body;
+
+  if (!req.file) res.status(422).send({ message: "No file uploaded!" });
+
+  try {
+
+    const imagePath = url + "/src/images/" + req.file.filename;  
+
+    const saveUserProfile = await User.update(
+      {
+        username,
+        bio,
+        email,
+        image: imagePath
+      },
+      {
+        where: { id },
+      }
+    );
+
+
+    res.send({ message: 'Profile updated successfully.', user: saveUserProfile })
+
+  } catch (error) {
+    if (error.name === "SequelizeValidationError") {
+      // Format validation errors
+      const messages = error.errors.map((err) => ({
+        field: err.path,
+        message: err.message,
+      }));
+      return res.status(400).json({ errors: messages });
+    }
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const actionUpload = async (req, res) => {
+  res.send({ data: [] });
+};

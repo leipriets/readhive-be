@@ -11,40 +11,41 @@ class User extends Model {
   async generateAuthToken() {
     const user = this;
     const myUUID = uuidv4();
-    const token = jwt.sign({ _id: user.id.toString(), _uuid: myUUID }, process.env.JWT_KEY, {
-      expiresIn: "7D",
-    });
+    const token = jwt.sign(
+      { _id: user.id.toString(), _uuid: myUUID },
+      process.env.JWT_KEY,
+      {
+        expiresIn: "7D",
+      }
+    );
 
     // user.tokens = user.tokens.concat({ id: myUUID, token: token });
 
     await Token.create({
       uuid: myUUID,
       user_id: user.id,
-      token
+      token,
     });
 
     return token;
   }
 
   static async findByEmail(email) {
-
     const user = this;
 
     return await user.findOne({
-      where: { email }
+      where: { email },
     });
   }
 
   static async findByUsername(username) {
-    
     const user = this;
 
     return await user.findOne({
-      where: { username }
+      where: { username },
     });
   }
 }
-
 
 User.init(
   {
@@ -56,11 +57,17 @@ User.init(
     email: {
       type: DataTypes.STRING,
       unique: true,
+      allowNull: false,
+      validate: {
+        isEmail: {
+          msg: 'Please enter a valid email address.',
+        },
+      },
     },
     username: {
       type: DataTypes.STRING,
       allowNull: false,
-      unique: true
+      unique: true,
     },
     image: {
       type: DataTypes.STRING,
@@ -73,14 +80,14 @@ User.init(
     password: {
       type: DataTypes.STRING,
       allowNull: false,
-    }
+    },
   },
   {
     sequelize,
     modelName: "User",
     tableName: "users",
     defaultScope: {
-      attributes: { exclude: ["email"] },
+      // attributes: { exclude: ["email"] },
     },
     hooks: {
       beforeCreate: async (user) => {
@@ -91,6 +98,5 @@ User.init(
     },
   }
 );
-
 
 export default User;
