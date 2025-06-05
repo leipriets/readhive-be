@@ -129,7 +129,7 @@ class Article extends Model {
     return result;
   }
 
-  static async transformResponse(articleObj) {
+  static async transformResponse(articleObj, currentSessionId = null) {
 
     const transformedRows = articleObj.rows.map((article) => {
       const articleJson = article.toJSON();
@@ -142,7 +142,10 @@ class Article extends Model {
       articleJson.tagList = tagNames;
       delete articleJson.articletags;
 
-      articleJson.favorited = _.isEmpty(articleJson.favorites) ? false : true;
+      // articleJson.favorited = _.isEmpty(articleJson.favorites) ? false : true;
+      const isFavoritedByUser = _.some(articleJson.favorites, { user_id: parseInt(currentSessionId) }); 
+
+      articleJson.favorited = isFavoritedByUser;
       articleJson.articleCount = article.articleCount;
 
       return articleJson;

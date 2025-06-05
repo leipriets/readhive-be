@@ -1,10 +1,15 @@
 import { Router } from 'express';
-import { createUser, signIn, getCurrentUser, userLogout } from '../controllers/user.controller.js';
+import { createUser, signIn, getCurrentUser, userLogout, updateUserProfile, actionUpload } from '../controllers/user.controller.js';
 import { auth } from '../middleware/auth.js';
+import extractFile from '../middleware/file.js';
+
 
 const router = Router();
 
 router.get('/user', auth, getCurrentUser);
+router.post('/user-update', auth, extractFile, updateUserProfile);
+router.post('/user-update-action', actionUpload);
+
 router.post('/users/login', signIn);
 router.post('/users', createUser);
 

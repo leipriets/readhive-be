@@ -7,10 +7,13 @@ import {
   Comment,
   LikeComments,
 } from "../models/index.js";
+import { notifyUser } from "../socket/index.js";
+
 import slug from "slug";
 import _ from "lodash";
 import { nanoid } from "nanoid";
 import { Op } from "sequelize";
+import { pushNotif } from "./notification.controller.js";
 
 export const getFeed = async (req, res) => {
   try {
@@ -26,7 +29,7 @@ export const getFeed = async (req, res) => {
 
     const isFeed = true;
     const result = await Article.fetchArticles(paramsArticle, isFeed);
-    const articles = await Article.transformResponse(result);
+    const articles = await Article.transformResponse(result, id);
 
     res.status(200).send({
       articles: articles,
@@ -40,7 +43,7 @@ export const getFeed = async (req, res) => {
 
 export const getArticles = async (req, res) => {
   try {
-    const { offset, limit, author, tag, favorited } = req.query;
+    const { offset, limit, author, tag, favorited, userId } = req.query;
     let articles, result;
 
     let paramsArticle = {
@@ -55,13 +58,13 @@ export const getArticles = async (req, res) => {
       const fetchFavoritedArticleIds = await Favorite.favoriteArticles(
         paramsArticle
       );
-      console.log(fetchFavoritedArticleIds);
+
       paramsArticle.articleIds = fetchFavoritedArticleIds;
       result = await Article.fetchArticles(paramsArticle);
-      articles = await Article.transformResponse(result);
+      articles = await Article.transformResponse(result, userId);
     } else {
       result = await Article.fetchArticles(paramsArticle);
-      articles = await Article.transformResponse(result);
+      articles = await Article.transformResponse(result, userId);
     }
 
     res.status(200).send({
@@ -248,7 +251,7 @@ export const updateArticle = async (req, res) => {
 export const getArticleBySlug = async (req, res) => {
   const userId = req?.user?.id;
 
-  console.log("userId", userId);
+  // console.log("userId", userId);
 
   try {
     const paramSlug = req.params.slug;
@@ -258,6 +261,7 @@ export const getArticleBySlug = async (req, res) => {
         {
           model: User,
           as: "user",
+          attributes: ['username', 'image']
         },
         {
           model: ArticleTag,
@@ -344,7 +348,9 @@ export const deleteArticle = async (req, res) => {
 
 export const addToFavorites = async (req, res) => {
   const articleSlug = req.params.slug;
-  const stateUerId = req.user.id;
+  const stateUserId = req.user.id;
+  const stateUsername = req.user.username;
+
   let favoritesCount;
   let updatedFavoritesCount;
 
@@ -367,13 +373,29 @@ export const addToFavorites = async (req, res) => {
       });
 
       await Favorite.create({
-        user_id: stateUerId,
+        user_id: stateUserId,
         article_id: articleId,
       });
+
+      
+      const notifData = {
+        senderId: stateUserId,
+        receiverId: fetchArticle.author,
+        articleId: fetchArticle.id,
+        senderUname: stateUsername,
+        type: 'favorited',
+        channel: 'push',
+        title: `Article: ${fetchArticle.title}`,
+        content: fetchArticle.body,
+        data: fetchArticle
+      }
+
+      pushNotif(notifData);
 
       res.send({ article });
     }
   } catch (error) {
+    console.log(error);
     res.status(400).send(error);
   }
 };

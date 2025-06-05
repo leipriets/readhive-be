@@ -1,5 +1,6 @@
 import { User, Follower } from '../models/index.js';
 import _ from 'lodash';
+import { pushNotif } from './notification.controller.js';
 
 export const getProfile = async (req, res) => {
 
@@ -51,16 +52,30 @@ export const followUser = async (req, res) => {
         const stateUsername = stateUser.username;
         const username = req.params.username;
 
-        const follower = await User.findByUsername(username);
+        const following = await User.findByUsername(username);
 
-        if (follower.username !== stateUsername) {
+        if (following.username !== stateUsername) {
             
             await Follower.create({
                 user_id: userId,
-                follow_id: follower.id,
+                follow_id: following.id,
             });
 
             const { username, bio, image } = stateUser;
+
+              const notifData = {
+                senderId: userId,
+                receiverId: following.id,
+                articleId: null,
+                senderUname: stateUsername,
+                type: 'followed_profile',
+                channel: 'push',
+                title: `${stateUsername} started following you`,
+                content: null,
+                data: following
+              }
+        
+              pushNotif(notifData);
 
             res.send({
                 profile: {
