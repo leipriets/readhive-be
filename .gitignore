@@ -35,3 +35,7 @@ Thumbs.db
 # Coverage and test results
 coverage/
 nyc_output/
+
+#images
+src/images/*
+!src/images/.gitkeep

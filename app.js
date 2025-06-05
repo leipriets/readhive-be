@@ -1,8 +1,10 @@
 import express from "express";
 import "dotenv/config";
 import path from "path";
-import { fileURLToPath } from "url";
 import cors from 'cors';
+import http from 'http';
+import { fileURLToPath } from "url";
+import * as socket from "./socket/index.js";
 
 import sequelize from "./config/database.js";
 
@@ -11,12 +13,11 @@ import userRoutes from "./routes/user.route.js";
 import articleRoutes from "./routes/article.route.js";
 import profileRoutes from "./routes/profile.route.js";
 import tagRoutes from "./routes/tags.route.js";
-
+import notificationRoutes from "./routes/notification.route.js";
 // seeds
 import { seedUsers } from "./seeds/user.seed.js";
 import { seedArticles } from "./seeds/article.seed.js";
 
-import Comment from "./models/comment.model.js";
 
 // Get the current file's directory
 const __filename = fileURLToPath(import.meta.url);
@@ -27,16 +28,23 @@ const port = process.env.PORT || 8080;
 const API_PREFIX = "/api";
 
 
+const server = http.createServer(app);
+const io = socket.init(server);
+
+
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use("/src/images", express.static(path.join("src/images")));
+
 
 app.use(API_PREFIX, userRoutes);
 app.use(API_PREFIX, articleRoutes);
 app.use(API_PREFIX, profileRoutes);
 app.use(API_PREFIX, tagRoutes);
+app.use(API_PREFIX, notificationRoutes);
 
-app.listen(port, () => {
+server.listen(port, () => {
   console.log(`Server is listening on port ${port}`);
   sequelize
     .authenticate()
@@ -47,6 +55,7 @@ app.listen(port, () => {
       console.error("Unable to connect to the database: ", error);
     });
 });
+io.listen(3001);
 
 // Sync DB
 // try {
