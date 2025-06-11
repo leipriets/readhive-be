@@ -4,6 +4,7 @@ import {
   Favorite,
   Tag,
   ArticleTag,
+  ArticleMedia,
   Comment,
   LikeComments,
 } from "../models/index.js";
@@ -13,6 +14,8 @@ import slug from "slug";
 import _ from "lodash";
 import { nanoid } from "nanoid";
 import { Op } from "sequelize";
+import { v4 as uuidv4 } from "uuid";
+
 import { pushNotif } from "./notification.controller.js";
 
 export const getFeed = async (req, res) => {
@@ -83,6 +86,8 @@ export const createArticle = async (req, res) => {
   let articleId;
   let generateSlug = slug(title, { lower: true });
 
+  console.log("create article files", req.files);
+
   try {
     const article = await Article.create({
       author: authorId,
@@ -91,6 +96,14 @@ export const createArticle = async (req, res) => {
       body,
       description,
     });
+
+    // article media uploads
+    if (req.files && req.files.length > 0) {
+      await ArticleMedia.create({
+        article_id: article.id,
+        files: req.files,
+      });
+    }
 
     tagList.forEach(async (tag) => {
       let tags = [];
@@ -161,7 +174,9 @@ export const updateArticle = async (req, res) => {
     const userId = req.user.id;
     const oldSlug = req.params.slug;
     const { title, body, description, tagList } = req.body.article;
+    const images = req.body.images;
     let existingTagList = [];
+    let updatedImages = [];
 
     const generateSlug = slug(title, { lower: true });
 
@@ -173,6 +188,9 @@ export const updateArticle = async (req, res) => {
         .send({ error: "Unprocessable Entity", message: "Not owned by user." });
     } else {
       fetchArticle.update({ slug: generateSlug, title, body, description });
+
+      let rawArticle = [];
+      let responseTagList = [];
 
       if (tagList && tagList.length === 0) {
         await ArticleTag.findOne({
@@ -218,7 +236,6 @@ export const updateArticle = async (req, res) => {
           },
         });
 
-
         // save new compiled article tags
         await Promise.all(
           compiledTagList.map(async (tag) => {
@@ -229,19 +246,52 @@ export const updateArticle = async (req, res) => {
           })
         );
 
-        const rawArticle = fetchArticle.get({ plain: true });
-        const responseTagList = {
+        rawArticle = fetchArticle.get({ plain: true });
+        responseTagList = {
           tagList,
         };
-
-        const article = {
-          ...rawArticle,
-          ...responseTagList,
-        };
-
-        res.status(200).send({ article });
       }
-    }
+
+      /** File Uploads */
+
+      const fetchFiles = await ArticleMedia.findOne({
+        where: {
+          article_id: fetchArticle.id,
+        },
+      });
+
+      if (Array.isArray(images)) {
+        let existingFilesFE = [];
+        images.forEach((image) => {
+          let currentFile = JSON.parse(image);
+          existingFilesFE.push(currentFile.name);
+        });
+
+        const getCurrentFiles = _.filter(fetchFiles.files, (file) =>
+          _.includes(existingFilesFE, file.filename)
+        );
+
+        updatedImages = updatedImages.concat(getCurrentFiles);
+      }
+
+      if (req.files) {
+        updatedImages = updatedImages.concat(req.files);
+      }
+
+      await fetchFiles.update({
+        files: updatedImages,
+      });
+
+      /** End of File Uploads */
+      // console.log(updatedImages);
+
+      const article = {
+        ...rawArticle,
+        ...responseTagList,
+      };
+
+      res.status(200).send({ article });
+    } // end of else block
   } catch (error) {
     console.log(error);
     res.status(400).send(error);
@@ -261,7 +311,11 @@ export const getArticleBySlug = async (req, res) => {
         {
           model: User,
           as: "user",
-          attributes: ['username', 'image']
+          attributes: ["username", "image"],
+        },
+        {
+          model: ArticleMedia,
+          as: "article_media",
         },
         {
           model: ArticleTag,
@@ -294,6 +348,7 @@ export const getArticleBySlug = async (req, res) => {
       favorites_count,
       user,
       articletags,
+      article_media,
       comments,
       createdAt,
       updatedAt,
@@ -310,6 +365,7 @@ export const getArticleBySlug = async (req, res) => {
       favoritesCount: favorites_count,
       author: user,
       tagList,
+      article_media,
       comments,
       createdAt,
       updatedAt,
@@ -377,18 +433,19 @@ export const addToFavorites = async (req, res) => {
         article_id: articleId,
       });
 
-      
       const notifData = {
         senderId: stateUserId,
         receiverId: fetchArticle.author,
         articleId: fetchArticle.id,
         senderUname: stateUsername,
-        type: 'favorited',
-        channel: 'push',
+        type: "favorited",
+        channel: "push",
         title: `Article: ${fetchArticle.title}`,
         content: fetchArticle.body,
-        data: fetchArticle
-      }
+        data: fetchArticle,
+      };
+
+      // console.log(notifData);
 
       pushNotif(notifData);
 

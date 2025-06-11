@@ -7,6 +7,7 @@ import Tag from "./tag.model.js";
 import Follower from "./follower.model.js";
 import _ from "lodash";
 import { Op } from "sequelize";
+import ArticleMedia from "./articleMedia.model.js";
 
 class Article extends Model {
   static async findArticleBySlug(slug) {
@@ -123,6 +124,10 @@ class Article extends Model {
           model: Favorite,
           as: "favorites",
         },
+        {
+          model: ArticleMedia,
+          as: "article_media",
+        },
       ],
     });
 
@@ -147,6 +152,7 @@ class Article extends Model {
 
       articleJson.favorited = isFavoritedByUser;
       articleJson.articleCount = article.articleCount;
+      articleJson.article_media = article.article_media;
 
       return articleJson;
     });
