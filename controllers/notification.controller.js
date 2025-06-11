@@ -42,7 +42,7 @@ export const getUserNotifications = async (req, res) => {
       where: {
         user_id: id,
       },
-      order: [["createdAt", "DESC"]],
+      order: [["updatedAt", "DESC"]],
     });
 
     const result = await Notification.transformNotifResponse(

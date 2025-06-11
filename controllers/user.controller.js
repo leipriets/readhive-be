@@ -125,8 +125,24 @@ export const updateUserProfile = async (req, res) => {
       }
     );
 
+    const updateUser = await User.findOne({ where: { id } });
 
-    res.send({ message: 'Profile updated successfully.', user: saveUserProfile })
+    if (updateUser) {
+      
+      updateUser.update(      {
+        username,
+        bio,
+        email,
+        image: imagePath
+      });
+
+      res.send({ message: 'Profile updated successfully.', user: updateUser });
+
+    } else {
+
+      return res.status(400).json({ errors: "User not found." });
+
+    }
 
   } catch (error) {
     if (error.name === "SequelizeValidationError") {

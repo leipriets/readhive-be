@@ -14,7 +14,7 @@ class NotificationActors extends Model {
     });
 
     if (!isExistNotif) {
-      notifActor.create({
+      await notifActor.create({
         notification_id,
         user_id,
       });
@@ -32,7 +32,7 @@ NotificationActors.init(
     notification_id: {
       type: DataTypes.BIGINT(20),
       references: {
-        model: "Notifications",
+        model: "notifications",
         key: "id",
       },
     },

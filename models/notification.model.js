@@ -49,7 +49,7 @@ class Notification extends Model {
       notifId = saveNotif.id;
     }
 
-    NotificationActors.saveNotif(notifId, senderId);
+    await NotificationActors.saveNotif(notifId, senderId);
   }
 
   static async transformNotifResponse(notificationObj) {

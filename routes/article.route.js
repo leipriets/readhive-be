@@ -18,15 +18,22 @@ import {
   deleteComment,
 } from "../controllers/comments.controller.js";
 import { auth } from "../middleware/auth.js";
+import extractFile from "../middleware/file.js";
+import extractFiles from "../middleware/files.js";
 
 const router = Router();
 
 router.get("/articles", getArticles);
 router.get("/articles/feed", auth, getFeed);
 router.get("/articles/:slug", auth, getArticleBySlug);
-router.put("/articles/:slug", auth, updateArticle);
+router.put(
+  "/articles/:slug",
+  auth,
+  extractFiles.array("images"),
+  updateArticle
+);
 router.delete("/articles/:slug", auth, deleteArticle);
-router.post("/articles", auth, createArticle);
+router.post("/articles", auth, extractFiles.array("images"), createArticle);
 
 router.post("/articles/:slug/favorite", auth, addToFavorites);
 router.delete("/articles/:slug/favorite", auth, removeToFavorites);
