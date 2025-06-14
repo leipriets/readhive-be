@@ -46,7 +46,7 @@ class Article extends Model {
     }
 
     if (isFeed) {
-      ids.push(userId);
+      // ids.push(userId);
 
       const followedIds = await Follower.findAll({
         where: {
@@ -62,6 +62,8 @@ class Article extends Model {
       if (getFollowedIds && getFollowedIds.length > 0) {
         ids.push(getFollowedIds);
       }
+
+      console.log(ids);
 
       filter = {
         author: {

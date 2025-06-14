@@ -24,6 +24,7 @@ export const pushNotif = async (notifData) => {
 export const getUserNotifications = async (req, res) => {
   try {
     const { id } = req?.user;
+    const { offset, limit } = req.query;
 
     const fetchNotifications = await Notification.findAndCountAll({
       include: [
@@ -42,6 +43,8 @@ export const getUserNotifications = async (req, res) => {
       where: {
         user_id: id,
       },
+      limit: +limit,
+      offset: +offset,
       order: [["updatedAt", "DESC"]],
     });
 

@@ -4,9 +4,14 @@ import { pushNotif } from "./notification.controller.js";
 
 export const getComments = async (req, res) => {
   const { articleId } = req.query;
-  const { id } = req.user;
+  let id = null;
 
   try {
+
+    if (req.user) {
+      id = req.user.id;
+    }
+
     const fetchComments = await Comment.findAll({
       attributes: {
         include: [
