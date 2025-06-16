@@ -15,7 +15,7 @@ pids/
 *.pid.lock
 
 # Environment files
-.env
+#.env
 
 # Dependency directories
 jspm_packages/
