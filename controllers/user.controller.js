@@ -1,4 +1,4 @@
-import { Token, User } from "../models/index.js";
+import { Token, User, Follower } from "../models/index.js";
 import bcrypt from "bcrypt";
 
 export const getCurrentUser = async (req, res) => {
@@ -107,36 +107,32 @@ export const updateUserProfile = async (req, res) => {
   const { id } = req.user;
   const { username, bio, email } = req.body;
 
-  if (!req.file) res.status(422).send({ message: "No file uploaded!" });
+  // if (!req.file) res.status(422).send({ message: "No file uploaded!" });
 
   try {
 
-    const imagePath = url + "/src/images/" + req.file.filename;  
+    let imagePath;
+    
+    if (req.file) {
+      imagePath = url + "/src/images/" + req.file.filename;  
+    }
 
-    const saveUserProfile = await User.update(
-      {
-        username,
-        bio,
-        email,
-        image: imagePath
-      },
-      {
-        where: { id },
-      }
-    );
+    const user = await User.findOne({ where: { id } });
 
-    const updateUser = await User.findOne({ where: { id } });
+    if (user) {
 
-    if (updateUser) {
+      user.username = username;
+      user.bio = bio;
+      user.email = email;
+
+      if (imagePath) user.image = imagePath;
       
-      updateUser.update(      {
-        username,
-        bio,
-        email,
-        image: imagePath
-      });
-
-      res.send({ message: 'Profile updated successfully.', user: updateUser });
+      // check changes value
+      if (user.changed('username') || user.changed('bio') || user.changed('email') || user.changed('image')) {
+        user.save();
+      }
+      
+      res.send({ message: 'Profile updated successfully.', user });
 
     } else {
 
@@ -145,6 +141,7 @@ export const updateUserProfile = async (req, res) => {
     }
 
   } catch (error) {
+    console.log(error);
     if (error.name === "SequelizeValidationError") {
       // Format validation errors
       const messages = error.errors.map((err) => ({

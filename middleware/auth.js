@@ -3,6 +3,14 @@ import { Token, User } from "../models/index.js";
 import _ from "lodash";
 
 export const auth = async (req, res, next) => {
+  
+  if (!req.header("Authorization")) {
+    res.status(401).send({
+      error: "Unauthenticated",
+      message: "Authentication failed.",
+    });
+  }
+
   const token = req.header("Authorization").replace("Bearer ", "");
   let decodedToken;
 
@@ -35,7 +43,7 @@ export const auth = async (req, res, next) => {
         image: user.image,
         bio: user.bio,
         token: tokenValue,
-        token_uuid: decodedToken._uuid
+        token_uuid: decodedToken._uuid,
       };
 
       req.user = userData;

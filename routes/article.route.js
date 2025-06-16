@@ -38,7 +38,7 @@ router.post("/articles", auth, extractFiles.array("images"), createArticle);
 router.post("/articles/:slug/favorite", auth, addToFavorites);
 router.delete("/articles/:slug/favorite", auth, removeToFavorites);
 
-router.get("/articles/:slug/comments", getComments);
+router.get("/articles/:slug/comments", auth, getComments);
 router.post("/articles/:slug/comment", auth, postComment);
 router.patch("/articles/:slug/comment", auth, updateComment);
 router.delete("/articles/:slug/comment/:commentId", auth, deleteComment);

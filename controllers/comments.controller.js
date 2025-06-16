@@ -50,7 +50,10 @@ export const getComments = async (req, res) => {
         article_id: articleId,
       },
       order: [["createdAt", "DESC"]],
+      logging: console.log,
     });
+
+    // console.log(fetchComments.sequelize)
 
     res.send(fetchComments);
   } catch (error) {

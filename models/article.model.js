@@ -8,6 +8,7 @@ import Follower from "./follower.model.js";
 import _ from "lodash";
 import { Op } from "sequelize";
 import ArticleMedia from "./articleMedia.model.js";
+import Comment from "./comment.model.js";
 
 class Article extends Model {
   static async findArticleBySlug(slug) {
@@ -39,6 +40,7 @@ class Article extends Model {
     let authorFilter = {};
     let filter = {};
     let filterTag = {};
+    let filterFavorites = {};
     let ids = [];
 
     if (author) {
@@ -72,6 +74,10 @@ class Article extends Model {
       };
     }
 
+    if (params.favorited) {
+      filterFavorites.user_id = userId;
+    }
+
     if (params.articleIds && params.articleIds.length > 0) {
       filter = {
         id: {
@@ -84,11 +90,10 @@ class Article extends Model {
       filterTag.name = params.tag;
     }
 
+    console.log('filter favorites',filter);
 
     const result = await Article.findAndCountAll({
-      limit,
-      offset,
-      order: [["createdAt", "DESC"]], // optional, for ordering
+
       distinct: true,
       attributes: [
         "id",
@@ -97,6 +102,7 @@ class Article extends Model {
         "body",
         "description",
         ["favorites_count", "favoritesCount"],
+        [sequelize.literal(`(SELECT COUNT(*) FROM comments WHERE comments.article_id = Article.id)`), 'commentsCount'],
         "createdAt",
         "updatedAt",
       ],
@@ -129,6 +135,10 @@ class Article extends Model {
           model: ArticleMedia,
           as: "article_media",
         },
+        {
+          model: Comment,
+          as: "comments"
+        }
       ],
     });
 
@@ -138,6 +148,7 @@ class Article extends Model {
   static async transformResponse(articleObj, currentSessionId = null) {
 
     const transformedRows = articleObj.rows.map((article) => {
+      console.log(currentSessionId);
       const articleJson = article.toJSON();
       articleJson.author = articleJson.user;
       delete articleJson.user;

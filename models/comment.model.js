@@ -25,7 +25,7 @@ Comment.init({
     article_id: {
         type: DataTypes.BIGINT(20),
         references: {
-            model: Article,
+            model: "articles",
             key: 'id'
         }
     },

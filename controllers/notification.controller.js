@@ -16,9 +16,12 @@ export const pushNotif = async (notifData) => {
     content,
   } = notifData;
 
-  const notifContent = notifArticle(senderId, senderUname, type, title, content);
-  await Notification.saveNotifData(notifData, notifContent);
-  notifyUser(receiverId, notifContent);
+  if (senderId !== receiverId) {
+    const notifContent = notifArticle(senderId, senderUname, type, title, content);
+    await Notification.saveNotifData(notifData, notifContent);
+    notifyUser(receiverId, notifContent);
+  }
+
 };
 
 export const getUserNotifications = async (req, res) => {

@@ -47,6 +47,7 @@ export const getFeed = async (req, res) => {
 export const getArticles = async (req, res) => {
   try {
     const { offset, limit, author, tag, favorited, userId } = req.query;
+    
     let articles, result;
 
     let paramsArticle = {
@@ -278,9 +279,12 @@ export const updateArticle = async (req, res) => {
         updatedImages = updatedImages.concat(req.files);
       }
 
-      await fetchFiles.update({
-        files: updatedImages,
-      });
+      if (updatedImages) {
+        // await fetchFiles.update({
+        //   files: updatedImages,
+        // });
+      }
+
 
       /** End of File Uploads */
       // console.log(updatedImages);
