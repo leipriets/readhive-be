@@ -31,6 +31,10 @@ const API_PREFIX = "/api";
 const server = http.createServer(app);
 const io = socket.init(server);
 
+app.get('/', (req, res) => {
+  res.send('Hello from ReadHive!');
+});
+
 
 app.use(cors());
 app.use(express.json());
