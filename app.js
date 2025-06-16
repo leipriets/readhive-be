@@ -58,15 +58,15 @@ server.listen(port, () => {
 io.listen(3001);
 
 // Sync DB
-// try {
-//   await sequelize.sync({ force: true });
-//   console.log("Database synced");
+try {
+  await sequelize.sync({ force: true });
+  console.log("Database synced");
 
-//   const users = await seedUsers();
-//   await seedArticles(users);
-//   console.log("✅Seeding completed successfully!");
+  const users = await seedUsers();
+  await seedArticles(users);
+  console.log("✅Seeding completed successfully!");
   
   
-// } catch (err) {
-//   console.error("Error syncing DB:", err);
-// }
+} catch (err) {
+  console.error("Error syncing DB:", err);
+}
