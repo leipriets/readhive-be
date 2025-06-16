@@ -93,7 +93,9 @@ class Article extends Model {
     console.log('filter favorites',filter);
 
     const result = await Article.findAndCountAll({
-
+      limit,
+      offset,
+      order: [["createdAt", "DESC"]], // optional, for ordering
       distinct: true,
       attributes: [
         "id",
