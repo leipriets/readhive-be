@@ -24,7 +24,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-const port = process.env.PORT || 8080;
+const port = process.env.PORT || 3000;
 const API_PREFIX = "/api";
 
 
@@ -60,6 +60,14 @@ server.listen(port, () => {
     });
 });
 io.listen(3001);
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection:', reason);
+});
+
+process.on('uncaughtException', err => {
+  console.error('Uncaught Exception:', err);
+});
 
 // Sync DB
 // try {
