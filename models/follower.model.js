@@ -1,28 +1,37 @@
-import { DataTypes } from 'sequelize';
-import sequelize from '../config/database.js';
-import User from './user.model.js';
+import { DataTypes, Model } from "sequelize";
+import sequelize from "../config/database.js";
+import User from "./user.model.js";
 
+class Follower extends Model {}
 
-const Follower = sequelize.define('Follower', {
+Follower.init(
+  {
     id: {
-        type: DataTypes.BIGINT(20),
-        autoIncrement: true,
-        primaryKey: true
+      type: DataTypes.BIGINT(20),
+      autoIncrement: true,
+      primaryKey: true,
     },
     user_id: {
-        type: DataTypes.BIGINT(20),
-        references: {
-            model: 'Users',
-            key: 'id'
-        }
+      type: DataTypes.BIGINT(20),
+      references: {
+        model: "Users",
+        key: "id",
+      },
     },
     follow_id: {
-        type: DataTypes.BIGINT(20),
-        references: {
-            model: 'Users',
-            key: 'id'
-        }
-    }
-  });
-  
-  export default Follower;
+      type: DataTypes.BIGINT(20),
+      references: {
+        model: "Users",
+        key: "id",
+      },
+    },
+  },
+  {
+    sequelize,
+    modelName: "Follower",
+    tableName: "followers",
+  }
+);
+
+
+export default Follower;
