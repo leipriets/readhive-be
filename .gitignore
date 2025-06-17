@@ -37,5 +37,6 @@ coverage/
 nyc_output/
 
 #images
-src/images/*
-!src/images/.gitkeep
+#src/images/*
+# src copy/images copy/*
+#!src/images/.gitkeep
