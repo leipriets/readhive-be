@@ -102,7 +102,7 @@ export const userLogout = async (req, res) => {
 export const updateUserProfile = async (req, res) => {
   console.log("File received:", req.file); // Check if file is attached
 
-  const url = req.protocol + '://' + req.get('host');
+  const url = req.protocol + "://" + req.get("host");
 
   const { id } = req.user;
   const { username, bio, email } = req.body;
@@ -110,36 +110,35 @@ export const updateUserProfile = async (req, res) => {
   // if (!req.file) res.status(422).send({ message: "No file uploaded!" });
 
   try {
-
     let imagePath;
-    
+
     if (req.file) {
-      imagePath = url + "/src/images/" + req.file.filename;  
+      imagePath = url + "/src/images/" + req.file.filename;
     }
 
     const user = await User.findOne({ where: { id } });
 
     if (user) {
-
       user.username = username;
       user.bio = bio;
       user.email = email;
 
       if (imagePath) user.image = imagePath;
-      
+
       // check changes value
-      if (user.changed('username') || user.changed('bio') || user.changed('email') || user.changed('image')) {
+      if (
+        user.changed("username") ||
+        user.changed("bio") ||
+        user.changed("email") ||
+        user.changed("image")
+      ) {
         user.save();
       }
-      
-      res.send({ message: 'Profile updated successfully.', user });
 
+      res.send({ message: "Profile updated successfully.", user });
     } else {
-
       return res.status(400).json({ errors: "User not found." });
-
     }
-
   } catch (error) {
     console.log(error);
     if (error.name === "SequelizeValidationError") {
@@ -150,6 +149,81 @@ export const updateUserProfile = async (req, res) => {
       }));
       return res.status(400).json({ errors: messages });
     }
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const validateUsername = async (req, res) => {
+  const { username } = req.query;
+
+  if (!username) {
+    return res.status(422).send({
+      code: 400,
+      error: "Bad Request",
+      message:
+        "Missing required query parameter: 'username'. Please include a valid username in the request URL. ",
+    });
+  }
+
+  try {
+    if (username) {
+      const checkUsernameQuery = await User.findOne({
+        where: {
+          username,
+        },
+      });
+
+      if (checkUsernameQuery) {
+        return res.send({
+          isAvailable: false,
+          message:
+            "This username is already taken. Please try a different one.",
+        });
+      }
+
+      return res.send({
+        isAvailable: true,
+        message: "Username is available.",
+      });
+    }
+  } catch (error) {
+    return res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const checkIsEmailExist = async (req, res) => {
+  const { email } = req.query;
+
+  if (!email) {
+    return res.status(422).send({
+      code: 400,
+      error: "Bad Request",
+      message:
+        "Missing required query parameter: 'email'. Please include a valid email in the request URL. ",
+    });
+  }
+
+  try {
+    if (email) {
+      const checkUsernameQuery = await User.findOne({
+        where: {
+          email,
+        },
+      });
+
+      if (checkUsernameQuery) {
+        return res.send({
+          isAvailable: false,
+          message: "This email is already taken. Please try a different one.",
+        });
+      }
+
+      return res.send({
+        isAvailable: true,
+        message: "Email is available.",
+      });
+    }
+  } catch (error) {
     return res.status(500).json({ message: "Internal server error" });
   }
 };
