@@ -31,9 +31,19 @@ export const createUser = async (req, res) => {
       password,
     });
 
+    user.id;
+
     const token = await user.generateAuthToken();
 
-    res.status(201).send({ user, token });
+    const userId = user?.id;
+
+    const response = {
+      id: userId,
+      email,
+      token
+    }
+
+    res.status(201).send({ user: response });
   } catch (e) {
     console.log(e);
     res.status(400).send(e);
