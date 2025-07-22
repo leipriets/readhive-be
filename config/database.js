@@ -13,10 +13,10 @@ const sequelize = new Sequelize(
     host: dbHost,
     dialect: "mysql",
     dialectOptions: {
-      ssl: {
-        "require": true,
-        "rejectUnauthorized": false // Only use this for development
-      }
+      // ssl: {
+      //   rejectUnauthorized: false, // Optional: Some Clever Cloud DBs require SSL
+      // },
+      ssl: false
     },
     // logging: false,
     // logging: false,
