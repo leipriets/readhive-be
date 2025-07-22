@@ -12,7 +12,7 @@ import NotificationActors from "./notificationActors.model.js";
 import ArticleMedia from "./articleMedia.model.js";
 
 // Define associations
-User.hasMany(Article);
+User.hasMany(Article, { foreignKey: 'author', as: 'articles' });
 User.hasMany(Comment, { foreignKey: "user_id", as: "comments" });
 User.hasMany(Favorite, { foreignKey: "user_id", as: "favorites" });
 User.hasMany(Token, { foreignKey: "user_id", as: "token" });
