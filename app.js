@@ -4,6 +4,9 @@ import path from "path";
 import cors from 'cors';
 import http from 'http';
 import { fileURLToPath } from "url";
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
+
 import * as socket from "./socket/index.js";
 
 import sequelize from "./config/database.js";
@@ -32,7 +35,7 @@ const server = http.createServer(app);
 const io = socket.init(server);
 
 app.get('/', (req, res) => {
-  res.send('Hello from ReadHive!');
+  res.send('ReadHive API');
 });
 
 
@@ -40,13 +43,23 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use("/src/images", express.static(path.join("src/images")));
-
+app.use(helmet());
 
 app.use(API_PREFIX, userRoutes);
 app.use(API_PREFIX, articleRoutes);
 app.use(API_PREFIX, profileRoutes);
 app.use(API_PREFIX, tagRoutes);
 app.use(API_PREFIX, notificationRoutes);
+
+// prevent multiple request in same API
+const limiter = rateLimit({
+  max: 100,
+  windowMs: 60 * 60 * 1000,
+  message: 'Too many requests from this IP, Please try again in an hour!'
+});
+
+app.use(limiter);
+
 
 server.listen(port, () => {
   console.log(`Server is listening on port ${port}`);
@@ -70,6 +83,7 @@ process.on('uncaughtException', err => {
 });
 
 // Sync DB
+// WARNING! Don't uncomment while in prod. It will wipe out all data in production.
 // try {
 //   await sequelize.sync({ force: true });
 //   console.log("Database synced");
