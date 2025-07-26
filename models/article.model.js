@@ -62,10 +62,8 @@ class Article extends Model {
       );
 
       if (getFollowedIds && getFollowedIds.length > 0) {
-        ids.push(getFollowedIds);
+        ids.push(...getFollowedIds);
       }
-
-      console.log(ids);
 
       filter = {
         author: {
@@ -90,7 +88,6 @@ class Article extends Model {
       filterTag.name = params.tag;
     }
 
-    console.log('filter favorites',filter);
 
     const result = await Article.findAndCountAll({
       limit,
